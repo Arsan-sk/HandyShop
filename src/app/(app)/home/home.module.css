@@ -1,0 +1,67 @@
+.container {
+  padding-top: var(--space-sm);
+}
+
+/* ── Displays Strip ── */
+.displays {
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.displaysScroll {
+  display: flex;
+  gap: var(--space-md);
+  overflow-x: auto;
+  padding: 0 var(--space-md);
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.displaysScroll::-webkit-scrollbar {
+  display: none;
+}
+
+.displayPlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+}
+
+.avatarPlaceholder {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-tertiary);
+}
+
+.displayLabel {
+  font-size: 0.6875rem;
+  color: var(--color-text-secondary);
+  max-width: 64px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Feed ── */
+.feed {
+  padding: var(--space-md);
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-3xl) var(--space-lg);
+  gap: var(--space-sm);
+}
+
+.emptyIcon {
+  font-size: 3rem;
+  margin-bottom: var(--space-sm);
+}

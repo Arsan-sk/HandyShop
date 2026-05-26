@@ -1,0 +1,142 @@
+.nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-sticky);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+[data-theme="dark"] .nav {
+  background: rgba(13, 13, 20, 0.85);
+}
+
+[data-theme="light"] .nav {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  max-width: var(--max-width-app);
+  margin: 0 auto;
+  height: var(--bottom-nav-height);
+  padding: 0 var(--space-sm);
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex: 1;
+  padding: var(--space-xs) 0;
+  text-decoration: none;
+  color: var(--color-text-tertiary);
+  transition: color var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+
+.tab:hover {
+  color: var(--color-text-secondary);
+}
+
+.tab.active {
+  color: var(--color-primary);
+}
+
+.iconWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+
+.icon {
+  transition: transform var(--transition-fast);
+}
+
+.tab.active .icon {
+  transform: scale(1.05);
+}
+
+.indicator {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+}
+
+.label {
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+/* Desktop: horizontal sidebar-style nav */
+@media (min-width: 768px) {
+  .nav {
+    top: 0;
+    bottom: auto;
+    left: 0;
+    right: auto;
+    width: 80px;
+    height: 100vh;
+    border-top: none;
+    border-right: 1px solid var(--color-border);
+    padding-bottom: 0;
+  }
+
+  .inner {
+    flex-direction: column;
+    justify-content: flex-start;
+    padding-top: var(--space-xl);
+    gap: var(--space-sm);
+    height: 100%;
+    max-width: none;
+  }
+
+  .tab {
+    flex: none;
+    padding: var(--space-sm);
+    border-radius: var(--radius-md);
+    width: 56px;
+    height: 56px;
+  }
+
+  .tab:hover {
+    background: var(--color-bg-secondary);
+  }
+
+  .tab.active {
+    background: var(--color-bg-tertiary);
+  }
+
+  .label {
+    display: none;
+  }
+
+  .indicator {
+    top: auto;
+    left: -4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 20px;
+    border-radius: var(--radius-full);
+  }
+}
