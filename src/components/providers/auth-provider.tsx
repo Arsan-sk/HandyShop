@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@/types";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -34,41 +34,43 @@ export default function AuthProvider({
   const [profile, setProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasInitialized, setHasInitialized] = useState(false);
-  const [isMounted, setIsMounted] = useState(true);
+  const isMountedRef = useRef(true);
   const supabase = createClient();
 
   const fetchProfile = async (userId: string, retryCount = 0) => {
-    if (!isMounted) return;
+    if (!isMountedRef.current) return;
 
     try {
-      // Fetch profile with 10 second timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-      const result = await supabase
+      // Fetch profile with 5 second race timeout
+      const queryPromise = supabase
         .from("users")
         .select("*")
         .eq("id", userId)
         .single();
 
-      clearTimeout(timeoutId);
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Abort: Profile fetch timeout")), 5000)
+      );
 
-      if (!isMounted) return;
+      const result = await Promise.race([queryPromise, timeoutPromise]);
+
+      if (!isMountedRef.current) return;
 
       const { data, error } = result;
 
       if (error) {
         // Only log errors on final attempt or for critical errors
-        if (retryCount >= 2) {
+        if (retryCount >= 1) {
           console.error("[Auth] Profile fetch failed:", error.code);
         }
         
-        // Retry only for network errors
+        // Retry only for network errors, NOT PGRST116 (missing row is a permanent non-transient state here)
         if (
-          retryCount < 2 &&
-          (error.code === "PGRST116" || error.message?.includes("fetch"))
+          retryCount < 1 &&
+          error.code !== "PGRST116" &&
+          (error.message?.includes("fetch") || error.message?.includes("timeout"))
         ) {
-          await new Promise((resolve) => setTimeout(resolve, 1500));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
           return fetchProfile(userId, retryCount + 1);
         }
         setProfile(null);
@@ -79,21 +81,21 @@ export default function AuthProvider({
         setProfile(data as User | null);
       }
     } catch (err: unknown) {
-      if (!isMounted) return;
+      if (!isMountedRef.current) return;
 
       const errMsg = err instanceof Error ? err.message : String(err);
       
       // Only log on final retry or critical errors
-      if (retryCount >= 2) {
+      if (retryCount >= 1) {
         console.error("[Auth] Profile fetch error:", errMsg.substring(0, 50));
       }
 
       // Retry on network/timeout errors
       if (
-        retryCount < 2 &&
-        (errMsg.includes("network") || errMsg.includes("Abort"))
+        retryCount < 1 &&
+        (errMsg.includes("network") || errMsg.includes("Abort") || errMsg.includes("timeout"))
       ) {
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         return fetchProfile(userId, retryCount + 1);
       }
 
@@ -102,20 +104,21 @@ export default function AuthProvider({
   };
 
   const refreshProfile = async () => {
-    if (user && isMounted) {
+    if (user && isMountedRef.current) {
       await fetchProfile(user.id);
     }
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    if (isMounted) {
+    if (isMountedRef.current) {
       setUser(null);
       setProfile(null);
     }
   };
 
   useEffect(() => {
+    isMountedRef.current = true;
     // Prevent multiple initializations
     if (hasInitialized) return;
 
@@ -123,7 +126,7 @@ export default function AuthProvider({
       try {
         const { data, error } = await supabase.auth.getSession();
 
-        if (!isMounted) return;
+        if (!isMountedRef.current) return;
 
         if (error) {
           console.error("[Auth] Session error:", error.code);
@@ -139,14 +142,14 @@ export default function AuthProvider({
           }
         }
       } catch (err: unknown) {
-        if (!isMounted) return;
+        if (!isMountedRef.current) return;
 
         const errMsg = err instanceof Error ? err.message : String(err);
         console.error("[Auth] Session fetch error:", errMsg.substring(0, 50));
         setUser(null);
         setProfile(null);
       } finally {
-        if (isMounted) {
+        if (isMountedRef.current) {
           setLoading(false);
           setHasInitialized(true);
         }
@@ -166,7 +169,7 @@ export default function AuthProvider({
         }
         lastAuthChangeTime = now;
 
-        if (!isMounted) return;
+        if (!isMountedRef.current) return;
 
         setUser(session?.user ?? null);
         if (session?.user) {
@@ -179,7 +182,7 @@ export default function AuthProvider({
     );
 
     return () => {
-      setIsMounted(false);
+      isMountedRef.current = false;
       subscription.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
