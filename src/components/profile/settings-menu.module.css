@@ -1,0 +1,79 @@
+.backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 40;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.menu {
+  position: fixed;
+  top: var(--space-md);
+  right: var(--space-md);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  shadow: var(--shadow-sm);
+  z-index: 50;
+  min-width: 160px;
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+}
+
+.menu.open {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.menuContent {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-xs);
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: none;
+  border: none;
+  color: var(--color-text-primary);
+  font-size: 0.9375rem;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.menuItem:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-primary);
+}
+
+.menuItem:active {
+  background: var(--color-bg-quaternary);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Mobile: position menu as dropdown */
+@media (max-width: 767px) {
+  .menu {
+    top: calc(var(--space-md) + 32px);
+    right: var(--space-md);
+    min-width: 140px;
+  }
+}

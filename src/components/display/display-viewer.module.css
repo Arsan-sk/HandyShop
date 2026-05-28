@@ -1,0 +1,264 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: 100vw;
+  max-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Progress Bars */
+.progressBars {
+  display: flex;
+  gap: 4px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 10;
+}
+
+.progressBar {
+  flex: 1;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 1px;
+  overflow: hidden;
+  animation: progress 5s linear forwards;
+}
+
+.progressBar.completed {
+  background: rgba(255, 255, 255, 0.8);
+  animation: none;
+}
+
+.progressBar.active {
+  animation: progress 5s linear forwards;
+}
+
+@keyframes progress {
+  from {
+    width: 0;
+    background: rgba(255, 255, 255, 0.5);
+  }
+  to {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.8);
+  }
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4), transparent);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid white;
+}
+
+.userDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.username {
+  color: white;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.time {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+}
+
+.closeBtn:hover {
+  opacity: 0.7;
+}
+
+/* Media Container */
+.mediaContainer {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+}
+
+.mediaContainer:active {
+  cursor: grabbing;
+}
+
+.media {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Navigation Areas */
+.navArea {
+  position: absolute;
+  top: 60px;
+  bottom: 0;
+  width: 40%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.navArea:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.navArea:first-of-type {
+  left: 0;
+}
+
+.navArea:last-of-type {
+  right: 0;
+}
+
+.navIcon {
+  color: white;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.navArea:hover .navIcon {
+  opacity: 1;
+}
+
+/* User Navigation */
+.userNavigation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 12px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.4), transparent);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+}
+
+.userNavBtn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+}
+
+.userNavBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.userNavBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.userCount {
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  min-width: 50px;
+  text-align: center;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Mobile / Responsive */
+@media (max-width: 768px) {
+  .progressBars {
+    gap: 3px;
+    padding: 8px;
+  }
+
+  .header {
+    padding: 8px 12px;
+  }
+
+  .avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .username {
+    font-size: 0.9rem;
+  }
+
+  .navArea {
+    width: 50%;
+  }
+}

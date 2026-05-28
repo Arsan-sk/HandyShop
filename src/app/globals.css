@@ -18,6 +18,7 @@
 
   /* Neutrals */
   --color-bg: #FFFFFF;
+  --color-bg-primary: var(--color-bg);
   --color-bg-secondary: #F8F9FA;
   --color-bg-tertiary: #F1F3F5;
   --color-surface: #FFFFFF;
@@ -92,6 +93,7 @@
   --color-accent-light: #FEB2D0;
 
   --color-bg: #0D0D14;
+  --color-bg-primary: var(--color-bg);
   --color-bg-secondary: #16161F;
   --color-bg-tertiary: #1E1E2A;
   --color-surface: #1A1A26;

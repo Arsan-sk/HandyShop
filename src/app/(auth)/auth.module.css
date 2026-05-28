@@ -9,6 +9,29 @@
 /* ── Logo Section ── */
 .logoSection {
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.emailIcon {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  margin-bottom: var(--space-sm);
+}
+
+.emailTitle {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
 }
 
 .logo {
@@ -88,6 +111,17 @@
   padding: var(--space-sm);
   background: rgba(225, 112, 85, 0.08);
   border-radius: var(--radius-sm);
+}
+
+/* ── Info (email confirmation notice) ── */
+.info {
+  font-size: 0.8125rem;
+  color: var(--color-success);
+  text-align: center;
+  padding: var(--space-sm);
+  background: rgba(0, 184, 148, 0.08);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(0, 184, 148, 0.2);
 }
 
 /* ── Submit Button ── */

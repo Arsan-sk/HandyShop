@@ -4,19 +4,9 @@
   left: 0;
   right: 0;
   z-index: var(--z-sticky);
-  background: var(--color-surface);
-  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-primary);
+  border-top: 1px solid var(--color-border-light);
   padding-bottom: env(safe-area-inset-bottom, 0);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-}
-
-[data-theme="dark"] .nav {
-  background: rgba(13, 13, 20, 0.85);
-}
-
-[data-theme="light"] .nav {
-  background: rgba(255, 255, 255, 0.85);
 }
 
 .inner {
@@ -87,56 +77,10 @@
   line-height: 1;
 }
 
-/* Desktop: horizontal sidebar-style nav */
+/* Desktop: hide mobile bottom nav */
 @media (min-width: 768px) {
   .nav {
-    top: 0;
-    bottom: auto;
-    left: 0;
-    right: auto;
-    width: 80px;
-    height: 100vh;
-    border-top: none;
-    border-right: 1px solid var(--color-border);
-    padding-bottom: 0;
-  }
-
-  .inner {
-    flex-direction: column;
-    justify-content: flex-start;
-    padding-top: var(--space-xl);
-    gap: var(--space-sm);
-    height: 100%;
-    max-width: none;
-  }
-
-  .tab {
-    flex: none;
-    padding: var(--space-sm);
-    border-radius: var(--radius-md);
-    width: 56px;
-    height: 56px;
-  }
-
-  .tab:hover {
-    background: var(--color-bg-secondary);
-  }
-
-  .tab.active {
-    background: var(--color-bg-tertiary);
-  }
-
-  .label {
     display: none;
   }
-
-  .indicator {
-    top: auto;
-    left: -4px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 4px;
-    height: 20px;
-    border-radius: var(--radius-full);
-  }
 }
+

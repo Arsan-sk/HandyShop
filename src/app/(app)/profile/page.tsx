@@ -1,8 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
-  Settings,
   Grid3X3,
   ShoppingBag,
   Bookmark,
@@ -10,18 +10,32 @@ import {
   MapPin,
   Edit3,
 } from "lucide-react";
+import SettingsMenu from "@/components/profile/settings-menu";
 import styles from "./profile.module.css";
 
 export default function ProfilePage() {
+  const [showSettings, setShowSettings] = useState(false);
+
   return (
     <div className={styles.container} id="profile-page">
       {/* Header */}
       <div className={styles.header}>
         <h1 className={styles.username}>username</h1>
-        <button className={styles.settingsBtn} id="settings-button" aria-label="Settings">
-          <Settings size={22} strokeWidth={1.8} />
+        <button
+          className={styles.settingsBtn}
+          id="settings-button"
+          aria-label="Settings"
+          onClick={() => setShowSettings(!showSettings)}
+        >
+          ⚙️
         </button>
       </div>
+
+      {/* Settings Menu */}
+      <SettingsMenu
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
 
       {/* Profile Info */}
       <motion.section

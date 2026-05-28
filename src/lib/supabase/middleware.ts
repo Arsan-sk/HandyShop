@@ -2,9 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  });
+  let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,12 +13,10 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
-          supabaseResponse = NextResponse.next({
-            request,
-          });
+          supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
@@ -29,20 +25,31 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Refresh the session — important for Server Components
+  // Refresh the session — do NOT remove this, it's critical for SSR
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Redirect unauthenticated users to login (except public routes)
-  const publicRoutes = ["/login", "/signup", "/"];
-  const isPublicRoute = publicRoutes.some(
-    (route) =>
-      request.nextUrl.pathname === route ||
-      request.nextUrl.pathname.startsWith("/api/auth")
-  );
+  const pathname = request.nextUrl.pathname;
 
-  if (!user && !isPublicRoute) {
+  // Routes that handle their own auth (no redirect needed)
+  const authOnlyPrefixes = ["/auth/", "/api/"];
+  const isAuthHandler = authOnlyPrefixes.some((p) => pathname.startsWith(p));
+  if (isAuthHandler) return supabaseResponse;
+
+  // Auth pages — if user IS logged in, redirect to home
+  const authPages = ["/login", "/signup", "/onboarding"];
+  const isAuthPage = authPages.includes(pathname);
+  if (user && isAuthPage) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/home";
+    return NextResponse.redirect(url);
+  }
+
+  // Protected pages — if user is NOT logged in, redirect to login
+  const publicPages = ["/", "/login", "/signup", "/onboarding"];
+  const isPublicPage = publicPages.includes(pathname);
+  if (!user && !isPublicPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

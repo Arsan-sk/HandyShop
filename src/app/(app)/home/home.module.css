@@ -1,5 +1,16 @@
 .container {
   padding-top: var(--space-sm);
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Mobile: add top padding for header */
+@media (max-width: 767px) {
+  .container {
+    padding-top: 0;
+    max-width: 100%;
+  }
 }
 
 /* ── Displays Strip ── */
@@ -64,4 +75,123 @@
 .emptyIcon {
   font-size: 3rem;
   margin-bottom: var(--space-sm);
+}
+
+/* ── Posts List ── */
+.postsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* ── Loading State ── */
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-3xl) var(--space-lg);
+  color: var(--color-text-secondary);
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-border-light);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Error State ── */
+.errorMessage {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  text-align: center;
+  color: #ef4444;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.errorMessage p {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.retryButton {
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  font-weight: 600;
+  transition: background var(--transition-fast);
+}
+
+.retryButton:hover {
+  background: #dc2626;
+}
+
+/* ── Observer Target ── */
+.observerTarget {
+  height: 1px;
+  margin-top: var(--space-lg);
+}
+
+/* ── End of Feed ── */
+.endOfFeed {
+  text-align: center;
+  padding: var(--space-lg);
+  color: var(--color-text-tertiary);
+  font-size: 0.875rem;
+}
+
+.emptySubtext {
+  font-size: 0.8125rem;
+  color: var(--color-text-tertiary);
+  margin-top: var(--space-xs);
+}
+
+.loadingMore {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-lg);
+}
+
+.spinnerSmall {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-border-light);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.pullToRefresh {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  width: 100%;
+  background: var(--color-bg);
+}
+
+.refreshArrow {
+  font-size: 1.25rem;
+  transition: transform 0.1s linear;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
