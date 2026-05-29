@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createNotification } from "@/lib/notifications-db";
 
 export async function POST(
   request: NextRequest,
@@ -87,6 +88,9 @@ export async function POST(
         );
       }
       isFollowingNow = true;
+
+      // Trigger follow notification
+      await createNotification(targetUser.id, currentUser.id, "follow");
 
       // Log notification/activity event in analytics_events
       await supabase.from("analytics_events").insert({

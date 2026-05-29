@@ -22,10 +22,18 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
-import CommentSheet from "@/components/post/comment-sheet";
-import ReportModal from "@/components/post/report-modal";
-import ProductSheet from "@/components/product/product-sheet";
+import dynamic from "next/dynamic";
 import styles from "./quicklook.module.css";
+
+const CommentSheet = dynamic(() => import("@/components/post/comment-sheet"), {
+  ssr: false,
+});
+const ReportModal = dynamic(() => import("@/components/post/report-modal"), {
+  ssr: false,
+});
+const ProductSheet = dynamic(() => import("@/components/product/product-sheet"), {
+  ssr: false,
+});
 
 interface PublisherDetailsProps {
   video: any;

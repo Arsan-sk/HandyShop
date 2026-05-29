@@ -1,10 +1,32 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Plus, Bell } from "lucide-react";
 import styles from "./mobile-header.module.css";
 
 export default function MobileHeader() {
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await fetch("/api/notifications/unread");
+      if (res.ok) {
+        const data = await res.json();
+        setUnreadCount(data.count || 0);
+      }
+    } catch (e) {
+      console.error("Failed to fetch notifications unread count:", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchUnreadCount();
+    // Poll every 15s for mobile
+    const interval = setInterval(fetchUnreadCount, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <header className={styles.header} id="mobile-header">
       <div className={styles.left}>
@@ -29,7 +51,12 @@ export default function MobileHeader() {
           id="notifications-btn"
           aria-label="Notifications"
         >
-          <Bell size={24} strokeWidth={2} />
+          <div className={styles.iconWrapper}>
+            <Bell size={24} strokeWidth={2} />
+            {unreadCount > 0 && (
+              <span className={styles.badge}>{unreadCount}</span>
+            )}
+          </div>
         </Link>
       </div>
     </header>

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft, Upload, X, Plus } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
+import { compressImage, validateVideoRequirements } from "@/lib/media-utils";
 import styles from "./create.module.css";
 
 interface MediaFile {
@@ -98,25 +99,41 @@ export default function CreatePostPage() {
         continue;
       }
 
-      const isImage = file.type.startsWith("image/");
-      let aspectRatio = "1:1";
+      const isVideo = file.type.startsWith("video/");
+      let processedFile = file;
 
-      try {
-        if (isImage) {
-          aspectRatio = await getImageAspectRatio(file);
-        } else {
-          aspectRatio = await getVideoAspectRatio(file);
+      if (isVideo) {
+        // Validate video limits
+        const validation = await validateVideoRequirements(file, 60);
+        if (!validation.valid) {
+          setError(validation.error || "Video requirements check failed");
+          continue;
         }
-      } catch (err) {
-        console.warn("Failed to detect aspect ratio:", err);
+      } else {
+        // Compress image client side
+        setUploadProgress("Optimizing image...");
+        processedFile = await compressImage(file);
       }
 
-      const url = URL.createObjectURL(file);
-      const type = isImage ? "image" : "video";
-      const id = Math.random().toString(36).substr(2, 9);
+      let ratio = "1:1";
+      if (isVideo) {
+        ratio = await getVideoAspectRatio(processedFile);
+      } else {
+        ratio = await getImageAspectRatio(processedFile);
+      }
 
-      setMediaFiles((prev) => [...prev, { file, url, type, id, aspectRatio }]);
+      const url = URL.createObjectURL(processedFile);
+      const newMedia: MediaFile = {
+        file: processedFile,
+        url,
+        type: isVideo ? "video" : "image",
+        id: Math.random().toString(36).substring(2, 9),
+        aspectRatio: ratio,
+      };
+
+      setMediaFiles((prev) => [...prev, newMedia]);
     }
+    setUploadProgress("");
 
     // Reset input
     if (fileInputRef.current) {

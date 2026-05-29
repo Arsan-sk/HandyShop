@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createNotification } from "@/lib/notifications-db";
 
 // GET all comments for a post
 export async function GET(
@@ -177,6 +178,27 @@ export async function POST(
         { message: "Failed to post comment" },
         { status: 500 }
       );
+    }
+
+    // Trigger comment notification (if commenter is not post owner)
+    try {
+      const { data: postData } = await supabase
+        .from("posts")
+        .select("user_id")
+        .eq("id", postId)
+        .single();
+
+      if (postData && postData.user_id !== user.id) {
+        await createNotification(
+          postData.user_id,
+          user.id,
+          "comment",
+          postId,
+          body.trim()
+        );
+      }
+    } catch (notifErr) {
+      console.error("[Create Comment Notification] Fail:", notifErr);
     }
 
     return NextResponse.json({

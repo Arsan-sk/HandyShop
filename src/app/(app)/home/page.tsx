@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import MobileHeader from "@/components/home/mobile-header";
 import DisplaysBar from "@/components/display/displays-bar";
-import DisplayViewer from "@/components/display/display-viewer";
+import dynamic from "next/dynamic";
 import PostCard from "@/components/post/post-card";
 import SuggestedUsers from "@/components/home/suggested-users";
 import { PostWithDetails, DisplayWithDetails } from "@/types";
 import styles from "./home.module.css";
+
+const DisplayViewer = dynamic(() => import("@/components/display/display-viewer"), { ssr: false });
 
 export default function HomePage() {
   const router = useRouter();

@@ -28,32 +28,39 @@ const tabs = [
 
 export default function SidebarNav() {
   const pathname = usePathname();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadChatsCount, setUnreadChatsCount] = useState(0);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCounts = async () => {
     try {
-      const res = await fetch("/api/chats/unread");
-      if (res.ok) {
-        const data = await res.json();
-        setUnreadCount(data.count || 0);
+      const chatRes = await fetch("/api/chats/unread");
+      if (chatRes.ok) {
+        const data = await chatRes.json();
+        setUnreadChatsCount(data.count || 0);
+      }
+
+      const notifRes = await fetch("/api/notifications/unread");
+      if (notifRes.ok) {
+        const data = await notifRes.json();
+        setUnreadNotificationsCount(data.count || 0);
       }
     } catch (e) {
-      console.error("Failed to fetch unread count:", e);
+      console.error("Failed to fetch unread counts:", e);
     }
   };
 
   useEffect(() => {
-    fetchUnreadCount();
+    fetchUnreadCounts();
 
-    // Poll every 10 seconds for new messages
-    const interval = setInterval(fetchUnreadCount, 10000);
+    // Poll every 12 seconds for counts
+    const interval = setInterval(fetchUnreadCounts, 12000);
 
     // Dynamic event trigger when entering/reading chats
-    window.addEventListener("chat-read-update", fetchUnreadCount);
+    window.addEventListener("chat-read-update", fetchUnreadCounts);
 
     return () => {
       clearInterval(interval);
-      window.removeEventListener("chat-read-update", fetchUnreadCount);
+      window.removeEventListener("chat-read-update", fetchUnreadCounts);
     };
   }, []);
 
@@ -76,7 +83,10 @@ export default function SidebarNav() {
           {tabs.map((tab) => {
             const isActive = activeTab?.href === tab.href;
             const Icon = tab.icon;
-            const showBadge = tab.label === "Chats" && unreadCount > 0;
+            const showBadge =
+              (tab.label === "Chats" && unreadChatsCount > 0) ||
+              (tab.label === "Notifications" && unreadNotificationsCount > 0);
+            const badgeCount = tab.label === "Chats" ? unreadChatsCount : unreadNotificationsCount;
 
             return (
               <Link
@@ -100,7 +110,7 @@ export default function SidebarNav() {
                     className={styles.icon}
                   />
                   {showBadge && (
-                    <span className={styles.badge}>{unreadCount}</span>
+                    <span className={styles.badge}>{badgeCount}</span>
                   )}
 
                   {isActive && (

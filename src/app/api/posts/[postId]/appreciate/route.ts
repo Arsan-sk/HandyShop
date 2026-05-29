@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createNotification } from "@/lib/notifications-db";
 
 export async function POST(
   request: NextRequest,
@@ -26,7 +27,7 @@ export async function POST(
     // Check if post exists
     const { data: post, error: postError } = await supabase
       .from("posts")
-      .select("id, appreciate_count")
+      .select("id, user_id, appreciate_count")
       .eq("id", postId)
       .single();
 
@@ -81,6 +82,9 @@ export async function POST(
           { status: 500 }
         );
       }
+
+      // Trigger appreciate notification
+      await createNotification(post.user_id, user.id, "appreciate", postId);
 
       // Update post appreciate count
       await supabase

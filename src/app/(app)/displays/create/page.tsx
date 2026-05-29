@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { X, Upload, Play, Type, Smile, Trash2 } from "lucide-react";
+import { compressImage, validateVideoRequirements } from "@/lib/media-utils";
 import styles from "./create-display.module.css";
 
 interface FilePreview {
@@ -69,7 +70,7 @@ export default function CreateDisplayPage() {
 
   // Handle file selection
   const handleFileSelect = useCallback(
-    (selectedFiles: FileList | null) => {
+    async (selectedFiles: FileList | null) => {
       if (!selectedFiles) return;
 
       setError(null);
@@ -99,11 +100,26 @@ export default function CreateDisplayPage() {
           continue;
         }
 
-        // Create preview
-        const preview = URL.createObjectURL(file);
-        const type = file.type.startsWith("video/") ? "video" : "image";
+        const isVideo = file.type.startsWith("video/");
+        let processedFile = file;
 
-        newFiles.push({ file, preview, type });
+        if (isVideo) {
+          // Validate video requirements
+          const validation = await validateVideoRequirements(file, 60);
+          if (!validation.valid) {
+            setError(validation.error || "Video requirements check failed");
+            continue;
+          }
+        } else {
+          // Compress image client side
+          processedFile = await compressImage(file);
+        }
+
+        // Create preview
+        const preview = URL.createObjectURL(processedFile);
+        const type = isVideo ? "video" : "image";
+
+        newFiles.push({ file: processedFile, preview, type });
         newOverlays.push({ texts: [], stickers: [] });
       }
 
