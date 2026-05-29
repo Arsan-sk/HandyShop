@@ -14,7 +14,46 @@ interface MediaFile {
   url: string;
   type: "image" | "video";
   id: string;
+  aspectRatio: string;
 }
+
+const getImageAspectRatio = (file: File): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.src = URL.createObjectURL(file);
+    img.onload = () => {
+      const ratio = img.width / img.height;
+      URL.revokeObjectURL(img.src);
+      if (ratio > 1.2) resolve("16:9");
+      else if (ratio < 0.8) resolve("9:16");
+      else if (ratio < 0.95) resolve("4:5");
+      else resolve("1:1");
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(img.src);
+      resolve("1:1");
+    };
+  });
+};
+
+const getVideoAspectRatio = (file: File): Promise<string> => {
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    video.src = URL.createObjectURL(file);
+    video.onloadedmetadata = () => {
+      const ratio = video.videoWidth / video.videoHeight;
+      URL.revokeObjectURL(video.src);
+      if (ratio > 1.2) resolve("16:9");
+      else if (ratio < 0.8) resolve("9:16");
+      else if (ratio < 0.95) resolve("4:5");
+      else resolve("1:1");
+    };
+    video.onerror = () => {
+      URL.revokeObjectURL(video.src);
+      resolve("9:16"); // Default video to vertical
+    };
+  });
+};
 
 export default function CreatePostPage() {
   const router = useRouter();
@@ -42,29 +81,42 @@ export default function CreatePostPage() {
     { id: "other", name: "🛍️ Other" },
   ];
 
-  const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMediaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     setError(null);
 
-    files.forEach((file) => {
+    for (const file of files) {
       // Validate file type
       if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
         setError("Only images and videos are allowed");
-        return;
+        continue;
       }
 
       // Validate file size (max 50MB per file)
       if (file.size > 50 * 1024 * 1024) {
         setError("Each file must be less than 50MB");
-        return;
+        continue;
+      }
+
+      const isImage = file.type.startsWith("image/");
+      let aspectRatio = "1:1";
+
+      try {
+        if (isImage) {
+          aspectRatio = await getImageAspectRatio(file);
+        } else {
+          aspectRatio = await getVideoAspectRatio(file);
+        }
+      } catch (err) {
+        console.warn("Failed to detect aspect ratio:", err);
       }
 
       const url = URL.createObjectURL(file);
-      const type = file.type.startsWith("image/") ? "image" : "video";
+      const type = isImage ? "image" : "video";
       const id = Math.random().toString(36).substr(2, 9);
 
-      setMediaFiles((prev) => [...prev, { file, url, type, id }]);
-    });
+      setMediaFiles((prev) => [...prev, { file, url, type, id, aspectRatio }]);
+    }
 
     // Reset input
     if (fileInputRef.current) {
@@ -120,6 +172,9 @@ export default function CreatePostPage() {
       formData.append("caption", caption);
       formData.append("category", category);
       formData.append("userId", user.id);
+      
+      const aspectRatios = mediaFiles.map((m) => m.aspectRatio);
+      formData.append("aspect_ratios", JSON.stringify(aspectRatios));
 
       const totalSizeMB = mediaFiles.reduce((sum, m) => sum + m.file.size, 0) / 1024 / 1024;
       console.log(`[Create] Total upload size: ${totalSizeMB.toFixed(2)}MB`);

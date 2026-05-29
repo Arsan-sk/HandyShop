@@ -38,8 +38,28 @@ export async function GET(request: NextRequest) {
       .eq("follower_id", user.id);
     const followedIds = follows?.map((f) => f.following_id) || [];
 
-    // Fetch top 100 active posts for ranking
-    const { data: posts, error: postsError } = await supabase
+    // Fetch blocked users (both blocker and blocked directions) and muted users
+    const { data: blockedRelationships } = await supabase
+      .from("blocked_users")
+      .select("blocker_id, blocked_id")
+      .or(`blocker_id.eq.${user.id},blocked_id.eq.${user.id}`);
+
+    const blockedUserIds = new Set<string>();
+    blockedRelationships?.forEach((r) => {
+      blockedUserIds.add(r.blocker_id);
+      blockedUserIds.add(r.blocked_id);
+    });
+
+    const { data: mutes } = await supabase
+      .from("muted_users")
+      .select("muted_id")
+      .eq("muter_id", user.id);
+    const mutedUserIds = mutes?.map((m) => m.muted_id) || [];
+
+    const excludedUserIds = new Set([...Array.from(blockedUserIds), ...mutedUserIds]);
+
+    // Fetch top 100 active posts for ranking (excluding blocked/muted users)
+    let postsQuery = supabase
       .from("posts")
       .select(
         `
@@ -95,9 +115,14 @@ export async function GET(request: NextRequest) {
       `
       )
       .eq("status", "active")
-      .eq("is_quicklook", false)
       .order("created_at", { ascending: false })
       .limit(100);
+
+    if (excludedUserIds.size > 0) {
+      postsQuery = postsQuery.not("user_id", "in", `(${Array.from(excludedUserIds).join(",")})`);
+    }
+
+    const { data: posts, error: postsError } = await postsQuery;
 
     if (postsError) {
       console.error("Failed to fetch posts:", postsError);

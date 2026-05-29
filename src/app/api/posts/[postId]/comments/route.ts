@@ -107,6 +107,44 @@ export async function POST(
       );
     }
 
+    // Rate Limiting: No more than 1 comment every 3 seconds per user to prevent spam bots
+    const threeSecondsAgo = new Date(Date.now() - 3 * 1000).toISOString();
+    const { data: recentComments, error: recentError } = await supabase
+      .from("comments")
+      .select("id")
+      .eq("user_id", user.id)
+      .gte("created_at", threeSecondsAgo)
+      .limit(1);
+
+    if (recentError) {
+      console.error("[Create Comment] Rate limit check error:", recentError);
+    } else if (recentComments && recentComments.length > 0) {
+      return NextResponse.json(
+        { message: "You are posting comments too fast. Please wait a few seconds." },
+        { status: 429 }
+      );
+    }
+
+    // Spam Prevention: Prevent identical duplicate comments within the last 2 minutes on the same post
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+    const { data: duplicateComment, error: duplicateError } = await supabase
+      .from("comments")
+      .select("id")
+      .eq("post_id", postId)
+      .eq("user_id", user.id)
+      .eq("body", body.trim())
+      .gte("created_at", twoMinutesAgo)
+      .limit(1);
+
+    if (duplicateError) {
+      console.error("[Create Comment] Duplicate check error:", duplicateError);
+    } else if (duplicateComment && duplicateComment.length > 0) {
+      return NextResponse.json(
+        { message: "Duplicate comment detected. Please wait before posting the same thing again." },
+        { status: 429 }
+      );
+    }
+
     // Insert comment
     const { data: comment, error: insertError } = await supabase
       .from("comments")

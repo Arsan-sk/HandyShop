@@ -225,3 +225,165 @@
   font-size: 4rem;
   margin-bottom: var(--space-md);
 }
+
+/* ── Suggestions Step ── */
+.suggestionsList {
+  flex: 1;
+  overflow-y: auto;
+  margin: var(--space-md) 0;
+  max-height: 50vh;
+  padding-right: var(--space-xs);
+}
+
+.loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2xl) 0;
+  gap: var(--space-md);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.empty {
+  text-align: center;
+  padding: var(--space-2xl) var(--space-md);
+  color: var(--color-text-tertiary);
+  font-size: 0.875rem;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.candRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-fast);
+}
+
+.candRow:hover {
+  border-color: var(--color-primary-light);
+  transform: translateY(-1px);
+  background: var(--color-bg-tertiary);
+}
+
+.candInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-width: 0;
+  flex: 1;
+}
+
+.candAvatar {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.candAvatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.candAvatarPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  color: white;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.candMeta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.usernameRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.candDisplayName {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sellerBadge {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  padding: 1px 5px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.candUsername {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 2px;
+}
+
+.candLocation {
+  font-size: 0.6875rem;
+  color: var(--color-text-tertiary);
+  display: flex;
+  align-items: center;
+}
+
+.candFollowBtn {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 8px 16px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  transition: all var(--transition-fast);
+}
+
+.candFollowBtn:hover {
+  background: var(--color-primary-dark);
+  transform: scale(1.02);
+}
+
+.candFollowingActive {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-light);
+}
+
+.candFollowingActive:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--color-text-primary);
+}
+

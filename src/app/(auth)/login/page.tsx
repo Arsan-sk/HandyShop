@@ -1,18 +1,24 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import styles from "../auth.module.css";
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  
+  const searchParams = useSearchParams();
+  const isSuspended = searchParams.get("error") === "suspended";
+  
+  const [error, setError] = useState<string | null>(
+    isSuspended ? "Your account has been suspended by an administrator." : null
+  );
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
@@ -47,11 +53,6 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-
-      // OPTIMIZATION: Skip profile check - auth provider handles it
-      // The trigger already creates profile on signup
-      // If missing, auth provider will create it on next fetch
-      // This reduces one database call and speeds up login
 
       // Force a hard navigation so the proxy re-evaluates the session cookie
       window.location.href = "/home";
@@ -132,7 +133,11 @@ export default function LoginPage() {
           </button>
         </div>
 
-        {error && <p className={styles.error}>{error}</p>}
+        {error && (
+          <p className={isSuspended && error.includes("suspended") ? styles.error : styles.error}>
+            {error}
+          </p>
+        )}
 
         <button
           type="submit"
@@ -160,5 +165,13 @@ export default function LoginPage() {
         </p>
       </div>
     </motion.div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className={styles.card}><div className={styles.spinner} /></div>}>
+      <LoginForm />
+    </Suspense>
   );
 }

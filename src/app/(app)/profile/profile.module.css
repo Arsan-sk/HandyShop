@@ -108,11 +108,26 @@
   justify-content: center;
 }
 
-.stat {
+.stat,
+.statBtn {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
+}
+
+.statBtn {
+  cursor: pointer;
+  user-select: none;
+  transition: opacity var(--transition-fast);
+}
+
+.statBtn:hover {
+  opacity: 0.85;
+}
+
+.statBtn:hover .statValue {
+  color: var(--color-primary);
 }
 
 .statValue {
@@ -120,6 +135,7 @@
   font-size: 1.125rem;
   font-weight: 700;
   color: #ffffff;
+  transition: color var(--transition-fast);
 }
 
 .statLabel {

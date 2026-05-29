@@ -29,7 +29,7 @@ export async function POST(
       .from("display_views")
       .select("id")
       .eq("display_id", displayId)
-      .eq("viewer_id", user.id)
+      .eq("user_id", user.id)
       .single();
 
     // Only insert if not already viewed
@@ -39,7 +39,7 @@ export async function POST(
         .from("display_views")
         .insert({
           display_id: displayId,
-          viewer_id: user.id,
+          user_id: user.id,
         });
 
       if (insertError) {

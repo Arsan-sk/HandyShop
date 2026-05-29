@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useState } from "react";
+import React, { useEffect, useRef, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import MobileHeader from "@/components/home/mobile-header";
 import DisplaysBar from "@/components/display/displays-bar";
 import DisplayViewer from "@/components/display/display-viewer";
 import PostCard from "@/components/post/post-card";
+import SuggestedUsers from "@/components/home/suggested-users";
 import { PostWithDetails, DisplayWithDetails } from "@/types";
 import styles from "./home.module.css";
 
@@ -21,6 +22,10 @@ export default function HomePage() {
   const [page, setPage] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const observerTarget = useRef<HTMLDivElement>(null);
+
+  // Suggestions State
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
   // Pull-to-refresh State
   const [pullDistance, setPullDistance] = useState(0);
@@ -57,7 +62,7 @@ export default function HomePage() {
       setIsRefreshing(true);
       setPullDistance(0);
       try {
-        await Promise.all([fetchDisplays(), fetchPosts(0)]);
+        await Promise.all([fetchDisplays(), fetchPosts(0), fetchSuggestions()]);
       } catch (err) {
         console.error("Refresh failed:", err);
       } finally {
@@ -127,11 +132,28 @@ export default function HomePage() {
     }
   }, [posts.length]);
 
+  // Fetch recommendations/suggestions
+  const fetchSuggestions = useCallback(async () => {
+    try {
+      setLoadingSuggestions(true);
+      const res = await fetch("/api/users/suggestions");
+      if (res.ok) {
+        const data = await res.json();
+        setSuggestions(data.suggestions || []);
+      }
+    } catch (err) {
+      console.error("Failed to load suggestions:", err);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  }, []);
+
   // Initial fetch
   useEffect(() => {
     fetchDisplays();
     fetchPosts(0);
-  }, [fetchDisplays, fetchPosts]);
+    fetchSuggestions();
+  }, [fetchDisplays, fetchPosts, fetchSuggestions]);
 
   // Infinite scroll observer
   useEffect(() => {
@@ -211,10 +233,32 @@ export default function HomePage() {
     }
   }, []);
 
-  // Find initial display index
-  const displayIndexForId = viewingDisplayId
-    ? displays.findIndex((d) => d.id === viewingDisplayId)
-    : 0;
+  // Update suggestions followed state
+  const handleSuggestionsFollowToggle = useCallback((userId: string, isFollowing: boolean) => {
+    setSuggestions((prev) =>
+      prev.map((s) => (s.id === userId ? { ...s, is_following: isFollowing } : s))
+    );
+  }, []);
+
+  // Find initial user index in the grouped displays
+  const getInitialUserIndex = () => {
+    if (!viewingDisplayId || displays.length === 0) return 0;
+    const selectedDisplay = displays.find((d) => d.id === viewingDisplayId);
+    if (!selectedDisplay) return 0;
+
+    const userGroups = displays.reduce<Record<string, DisplayWithDetails[]>>(
+      (acc, display) => {
+        const key = display.user_id;
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(display);
+        return acc;
+      },
+      {}
+    );
+    const userIds = Object.keys(userGroups);
+    const index = userIds.indexOf(selectedDisplay.user_id);
+    return index >= 0 ? index : 0;
+  };
 
   return (
     <>
@@ -249,103 +293,140 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* Displays Bar */}
-        <DisplaysBar
-          displays={displays}
-          onDisplayClick={setViewingDisplayId}
-          onCreateDisplay={() => router.push("/displays/create")}
-        />
+        <div className={styles.homeLayout}>
+          <div className={styles.feedColumn}>
+            {/* Displays Bar */}
+            <DisplaysBar
+              displays={displays}
+              onDisplayClick={setViewingDisplayId}
+              onCreateDisplay={() => router.push("/displays/create")}
+            />
 
-        {/* Display Viewer Modal */}
-        {viewingDisplayId && (
-          <DisplayViewer
-            displays={displays}
-            initialUserIndex={displayIndexForId >= 0 ? displayIndexForId : 0}
-            onClose={() => setViewingDisplayId(null)}
-          />
-        )}
+            {/* Display Viewer Modal */}
+            {viewingDisplayId && (
+              <DisplayViewer
+                displays={displays}
+                initialUserIndex={getInitialUserIndex()}
+                onClose={() => setViewingDisplayId(null)}
+              />
+            )}
 
-        {/* Feed Section */}
-        <section className={styles.feed} id="home-feed">
-          {posts.length === 0 && !isLoadingPosts && !error && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className={styles.emptyState}
-            >
-              <div className={styles.emptyIcon}>🛍️</div>
-              <h2 className="text-heading">Discover Local Shops</h2>
-              <p className="text-caption">
-                Follow sellers and explore nearby shops to fill your feed with
-                amazing products.
-              </p>
-              <p className={styles.emptySubtext}>
-                Be the first to create a post! Click + to get started.
-              </p>
-            </motion.div>
-          )}
+            {/* Feed Section */}
+            <section className={styles.feed} id="home-feed">
+              {posts.length === 0 && !isLoadingPosts && !error && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className={styles.emptyState}
+                >
+                  <div className={styles.emptyIcon}>🛍️</div>
+                  <h2 className="text-heading">Discover Local Shops</h2>
+                  <p className="text-caption">
+                    Follow sellers and explore nearby shops to fill your feed with
+                    amazing products.
+                  </p>
+                  <p className={styles.emptySubtext}>
+                    Be the first to create a post! Click + to get started.
+                  </p>
 
-          {/* Posts */}
-          <div className={styles.postsList}>
-            {posts.map((post, index) => (
-              <motion.div
-                key={post.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-              >
-                <PostCard
-                  post={post}
-                  onAppreciate={handleAppreciate}
-                  onPick={handlePick}
-                />
-              </motion.div>
-            ))}
+                  {suggestions.length > 0 && (
+                    <div className={styles.emptySuggestions}>
+                      <p className={styles.emptySuggestionsTitle}>Suggested Sellers for You</p>
+                      <SuggestedUsers
+                        suggestions={suggestions}
+                        loading={loadingSuggestions}
+                        mode="carousel"
+                        onFollowToggle={handleSuggestionsFollowToggle}
+                      />
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
+              {/* Posts */}
+              <div className={styles.postsList}>
+                {posts.map((post, index) => (
+                  <div key={post.id}>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                    >
+                      <PostCard
+                        post={post}
+                        onAppreciate={handleAppreciate}
+                        onPick={handlePick}
+                      />
+                    </motion.div>
+                    {index === 1 && suggestions.length > 0 && (
+                      <div className={styles.inlineCarousel}>
+                        <SuggestedUsers
+                          suggestions={suggestions}
+                          loading={loadingSuggestions}
+                          mode="carousel"
+                          onFollowToggle={handleSuggestionsFollowToggle}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Error Message */}
+              {error && (
+                <motion.div
+                  className={styles.errorMessage}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <p>{error}</p>
+                  <button
+                    onClick={() => fetchPosts(0)}
+                    className={styles.retryButton}
+                  >
+                    Try Again
+                  </button>
+                </motion.div>
+              )}
+
+              {/* Loading Indicator */}
+              {isLoadingPosts && posts.length === 0 && (
+                <div className={styles.loadingState}>
+                  <div className={styles.spinner} />
+                  <p>Loading posts...</p>
+                </div>
+              )}
+
+              {isLoadingPosts && posts.length > 0 && (
+                <div className={styles.loadingMore}>
+                  <div className={styles.spinnerSmall} />
+                </div>
+              )}
+
+              {/* Infinite Scroll Trigger */}
+              <div ref={observerTarget} className={styles.observerTarget} />
+
+              {/* End of Feed */}
+              {!hasMorePosts && posts.length > 0 && (
+                <div className={styles.endOfFeed}>
+                  <p>You've reached the end of your feed</p>
+                </div>
+              )}
+            </section>
           </div>
 
-          {/* Error Message */}
-          {error && (
-            <motion.div
-              className={styles.errorMessage}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <p>{error}</p>
-              <button
-                onClick={() => fetchPosts(0)}
-                className={styles.retryButton}
-              >
-                Try Again
-              </button>
-            </motion.div>
-          )}
-
-          {/* Loading Indicator */}
-          {isLoadingPosts && posts.length === 0 && (
-            <div className={styles.loadingState}>
-              <div className={styles.spinner} />
-              <p>Loading posts...</p>
-            </div>
-          )}
-
-          {isLoadingPosts && posts.length > 0 && (
-            <div className={styles.loadingMore}>
-              <div className={styles.spinnerSmall} />
-            </div>
-          )}
-
-          {/* Infinite Scroll Trigger */}
-          <div ref={observerTarget} className={styles.observerTarget} />
-
-          {/* End of Feed */}
-          {!hasMorePosts && posts.length > 0 && (
-            <div className={styles.endOfFeed}>
-              <p>You've reached the end of your feed</p>
-            </div>
-          )}
-        </section>
+          <aside className={styles.sidebarColumn}>
+            <SuggestedUsers
+              suggestions={suggestions}
+              loading={loadingSuggestions}
+              mode="sidebar"
+              onFollowToggle={handleSuggestionsFollowToggle}
+            />
+          </aside>
+        </div>
       </div>
     </>
   );
 }
+

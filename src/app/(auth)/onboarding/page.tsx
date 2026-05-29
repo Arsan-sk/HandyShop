@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, ChevronRight, Check, SkipForward } from "lucide-react";
+import { MapPin, ChevronRight, Check, SkipForward, UserPlus, UserCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/components/providers/auth-provider";
 import styles from "./onboarding.module.css";
@@ -19,7 +19,7 @@ const CATEGORIES = [
   { id: "other", label: "Other", emoji: "✨" },
 ];
 
-type Step = "location" | "interests" | "done";
+type Step = "location" | "interests" | "suggestions" | "done";
 
 export default function OnboardingPage() {
   const [step, setStep] = useState<Step>("location");
@@ -27,6 +27,12 @@ export default function OnboardingPage() {
   const [area, setArea] = useState("");
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  // Suggestions states
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [followedSuggestionIds, setFollowedSuggestionIds] = useState<string[]>([]);
+
   const router = useRouter();
   const supabase = createClient();
   const { user, refreshProfile } = useAuth();
@@ -76,6 +82,31 @@ export default function OnboardingPage() {
 
     await refreshProfile();
     setLoading(false);
+    setStep("suggestions");
+  };
+
+  const handleSuggestionFollowToggle = async (cand: any) => {
+    try {
+      const response = await fetch(`/api/users/${cand.username}/follow`, {
+        method: "POST",
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.is_following) {
+          setFollowedSuggestionIds((prev) => [...prev, cand.id]);
+        } else {
+          setFollowedSuggestionIds((prev) => prev.filter((id) => id !== cand.id));
+        }
+      }
+    } catch (err) {
+      console.error("Failed to follow suggested seller:", err);
+    }
+  };
+
+  const handleSuggestionsNext = async () => {
+    setLoading(true);
+    await refreshProfile();
+    setLoading(false);
     setStep("done");
 
     // Navigate to home after short delay
@@ -89,10 +120,32 @@ export default function OnboardingPage() {
     if (step === "location") {
       setStep("interests");
     } else if (step === "interests") {
-      // Skip to home with hard navigation
-      window.location.href = "/home";
+      setStep("suggestions");
+    } else if (step === "suggestions") {
+      handleSuggestionsNext();
     }
   };
+
+  // Fetch suggestions when onboarding reaches suggestions step
+  useEffect(() => {
+    if (step === "suggestions") {
+      const fetchSuggestions = async () => {
+        setLoadingSuggestions(true);
+        try {
+          const res = await fetch("/api/users/suggestions");
+          if (res.ok) {
+            const data = await res.json();
+            setSuggestions(data.suggestions || []);
+          }
+        } catch (err) {
+          console.error("Failed to load onboarding suggestions:", err);
+        } finally {
+          setLoadingSuggestions(false);
+        }
+      };
+      fetchSuggestions();
+    }
+  }, [step]);
 
   return (
     <div className={styles.container}>
@@ -103,9 +156,11 @@ export default function OnboardingPage() {
           style={{
             width:
               step === "location"
-                ? "33%"
+                ? "25%"
                 : step === "interests"
-                ? "66%"
+                ? "50%"
+                : step === "suggestions"
+                ? "75%"
                 : "100%",
           }}
         />
@@ -241,6 +296,126 @@ export default function OnboardingPage() {
                   <div className={styles.spinner} />
                 ) : (
                   <>
+                    Continue <ChevronRight size={16} />
+                  </>
+                )}
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Step 3: Suggestions */}
+        {step === "suggestions" && (
+          <motion.div
+            key="suggestions"
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -50 }}
+            transition={{ duration: 0.3 }}
+            className={styles.stepContent}
+          >
+            <div className={styles.stepHeader}>
+              <h1 className="text-display">Follow popular shops</h1>
+              <p className="text-caption">
+                Follow nearby sellers to see what they are listing
+              </p>
+            </div>
+
+            <div className={styles.suggestionsList}>
+              {loadingSuggestions ? (
+                <div className={styles.loader}>
+                  <div className={styles.spinner} />
+                  <p>Finding recommended sellers...</p>
+                </div>
+              ) : suggestions.length === 0 ? (
+                <div className={styles.empty}>
+                  <p>No suggestions available in your area yet.</p>
+                </div>
+              ) : (
+                <div className={styles.list}>
+                  {suggestions.map((cand) => {
+                    const isFollowing = followedSuggestionIds.includes(cand.id);
+                    const avatarFallback = cand.username[0]?.toUpperCase() || "U";
+                    return (
+                      <div key={cand.id} className={styles.candRow}>
+                        <div className={styles.candInfo}>
+                          <div className={styles.candAvatar}>
+                            {cand.avatar_url ? (
+                              <img
+                                src={cand.avatar_url}
+                                alt={cand.username}
+                                className={styles.candAvatarImg}
+                              />
+                            ) : (
+                              <div className={styles.candAvatarPlaceholder}>
+                                {avatarFallback}
+                              </div>
+                            )}
+                          </div>
+                          <div className={styles.candMeta}>
+                            <div className={styles.usernameRow}>
+                              <span className={styles.candDisplayName}>
+                                {cand.display_name || cand.username}
+                              </span>
+                              {cand.role === "seller" && (
+                                <span className={styles.sellerBadge} title="Verified Seller">
+                                  Shop
+                                </span>
+                              )}
+                            </div>
+                            <span className={styles.candUsername}>@{cand.username}</span>
+                            {cand.city && (
+                              <span className={styles.candLocation}>
+                                <MapPin size={10} style={{ marginRight: 2 }} />
+                                {cand.city} {cand.area ? `, ${cand.area}` : ""}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => handleSuggestionFollowToggle(cand)}
+                          className={`${styles.candFollowBtn} ${
+                            isFollowing ? styles.candFollowingActive : ""
+                          }`}
+                        >
+                          {isFollowing ? (
+                            <>
+                              <UserCheck size={14} />
+                              <span>Following</span>
+                            </>
+                          ) : (
+                            <>
+                              <UserPlus size={14} />
+                              <span>Follow</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className={styles.actions}>
+              <button
+                onClick={handleSkip}
+                className={styles.skipBtn}
+                id="skip-suggestions"
+              >
+                <SkipForward size={14} /> Skip
+              </button>
+              <button
+                onClick={handleSuggestionsNext}
+                disabled={loading}
+                className={styles.nextBtn}
+                id="finish-onboarding"
+              >
+                {loading ? (
+                  <div className={styles.spinner} />
+                ) : (
+                  <>
                     Let&apos;s Go <ChevronRight size={16} />
                   </>
                 )}
@@ -249,7 +424,7 @@ export default function OnboardingPage() {
           </motion.div>
         )}
 
-        {/* Step 3: Done */}
+        {/* Step 4: Done */}
         {step === "done" && (
           <motion.div
             key="done"

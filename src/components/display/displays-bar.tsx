@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import type { DisplayWithDetails } from "@/types";
@@ -54,57 +53,57 @@ export default function DisplaysBar({
           </div>
         ) : (
           profile && (
-            <div className={styles.avatarContainer}>
-              <button
-                className={styles.displayItem}
-                onClick={() => {
-                  if (hasDisplays) {
-                    onDisplayClick?.(currentUserDisplays[0].id);
-                  } else {
-                    onCreateDisplay?.();
-                  }
-                }}
-                aria-label={hasDisplays ? "View your display" : "Add to your display"}
-              >
-                <div
-                  className={`${styles.ring} ${
-                    hasDisplays
-                      ? hasUnviewed
-                        ? styles.ringActive
-                        : styles.ringViewed
-                      : styles.ringNone
-                  }`}
+            <div className={styles.itemWrapper}>
+              <div className={styles.avatarContainer}>
+                <button
+                  className={styles.avatarButton}
+                  onClick={() => {
+                    if (hasDisplays) {
+                      onDisplayClick?.(currentUserDisplays[0].id);
+                    } else {
+                      onCreateDisplay?.();
+                    }
+                  }}
+                  aria-label={hasDisplays ? "View your display" : "Add to your display"}
                 >
-                  <div className={styles.avatarWrapper}>
-                    {profile.avatar_url ? (
-                      <Image
-                        src={profile.avatar_url}
-                        alt="Your avatar"
-                        width={52}
-                        height={52}
-                        className={styles.avatarImg}
-                      />
-                    ) : (
-                      <div className={styles.avatarFallback}>
-                        {profile.username[0]?.toUpperCase() || "Y"}
-                      </div>
-                    )}
+                  <div
+                    className={`${styles.ring} ${
+                      hasDisplays
+                        ? hasUnviewed
+                          ? styles.ringActive
+                          : styles.ringViewed
+                        : styles.ringNone
+                    }`}
+                  >
+                    <div className={styles.avatarWrapper}>
+                      {profile.avatar_url ? (
+                        <img
+                          src={profile.avatar_url}
+                          alt="Your avatar"
+                          className={styles.avatarImg}
+                        />
+                      ) : (
+                        <div className={styles.avatarFallback}>
+                          {profile.username[0]?.toUpperCase() || "Y"}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <span className={styles.label}>Your Display</span>
-              </button>
+                </button>
 
-              {/* Small Instagram-style add badge */}
-              <button
-                className={styles.selfPlusBadge}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCreateDisplay?.();
-                }}
-                aria-label="Add new display"
-              >
-                <Plus size={12} strokeWidth={3} className={styles.plusIconSelf} />
-              </button>
+                {/* Small Instagram-style add badge */}
+                <button
+                  className={styles.selfPlusBadge}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCreateDisplay?.();
+                  }}
+                  aria-label="Add new display"
+                >
+                  <Plus size={12} strokeWidth={3} className={styles.plusIconSelf} />
+                </button>
+              </div>
+              <span className={styles.label}>Your Display</span>
             </div>
           )
         )}
@@ -136,11 +135,9 @@ export default function DisplaysBar({
               >
                 <div className={styles.avatarWrapper}>
                   {user.avatar_url ? (
-                    <Image
+                    <img
                       src={user.avatar_url}
                       alt={user.username}
-                      width={52}
-                      height={52}
                       className={styles.avatarImg}
                     />
                   ) : (

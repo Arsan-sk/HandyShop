@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: "100mb",
-    },
-  },
-};
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,6 +33,11 @@ export async function POST(request: NextRequest) {
     const files = formData.getAll("files") as File[];
     const caption = formData.get("caption") as string;
     const category = formData.get("category") as string;
+    const aspectRatiosStr = formData.get("aspect_ratios") as string;
+    const aspectRatios = aspectRatiosStr ? JSON.parse(aspectRatiosStr) : [];
+    
+    // Automatically flag as quicklook if any file is a video
+    const isQuickLook = files.some((file) => file.type.startsWith("video/"));
 
     // Validation
     if (!files || files.length === 0) {
@@ -85,7 +83,7 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         caption: caption.trim(),
         status: "active",
-        is_quicklook: false,
+        is_quicklook: isQuickLook,
         city: userProfile?.city || null,
         area: userProfile?.area || null,
         latitude: userProfile?.latitude || null,
@@ -184,7 +182,7 @@ export async function POST(request: NextRequest) {
             post_id: post.id,
             media_url: mediaUrl,
             media_type: mediaType,
-            aspect_ratio: "1:1", // Default, can be updated with image analysis
+            aspect_ratio: aspectRatios[i] || (mediaType === "video" ? "9:16" : "1:1"),
             display_order: i,
             duration_seconds: isVideo ? 0 : null,
             file_size_bytes: file.size,

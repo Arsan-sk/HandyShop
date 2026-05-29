@@ -300,9 +300,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 4. Fetch Users (Sellers)
+    // 4. Fetch Users (All users for usernames search OR Sellers for shops/users search)
     let usersData: any[] = [];
-    if (type === "users" || type === "all") {
+    if (type === "users" || type === "usernames" || type === "shops" || type === "all") {
       let usersQuery = supabase
         .from("users")
         .select(`
@@ -318,8 +318,11 @@ export async function GET(request: NextRequest) {
           post_count,
           follower_count,
           following_count
-        `)
-        .eq("role", "seller");
+        `);
+
+      if (type === "users" || type === "shops") {
+        usersQuery = usersQuery.eq("role", "seller");
+      }
 
       // Apply Text Search
       if (q) {
@@ -377,7 +380,7 @@ export async function GET(request: NextRequest) {
       postsData = postsData.slice(offset, offset + limit);
     } else if (type === "products") {
       productsData = productsData.slice(offset, offset + limit);
-    } else if (type === "users") {
+    } else if (type === "users" || type === "usernames" || type === "shops") {
       usersData = usersData.slice(offset, offset + limit);
     } else {
       // type === 'all'

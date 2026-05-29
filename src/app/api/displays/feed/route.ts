@@ -15,6 +15,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
+    // Fetch followed users
+    const { data: follows } = await supabase
+      .from("follows")
+      .select("following_id")
+      .eq("follower_id", user.id);
+    const followedIds = follows?.map((f) => f.following_id) || [];
+    const allowedUserIds = [...followedIds, user.id];
+
     const now = new Date().toISOString();
 
     // Get non-expired displays from followed users, sorted by recency
@@ -46,6 +54,7 @@ export async function GET(request: NextRequest) {
       `
       )
       .gt("expires_at", now)
+      .in("user_id", allowedUserIds)
       .order("created_at", { ascending: false })
       .limit(20);
 
@@ -57,11 +66,31 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Fetch blocked users and muted users to filter display bubbles
+    const { data: blockedRelationships } = await supabase
+      .from("blocked_users")
+      .select("blocker_id, blocked_id")
+      .or(`blocker_id.eq.${user.id},blocked_id.eq.${user.id}`);
+
+    const blockedUserIds = new Set<string>();
+    blockedRelationships?.forEach((r) => {
+      blockedUserIds.add(r.blocker_id);
+      blockedUserIds.add(r.blocked_id);
+    });
+
+    const { data: mutes } = await supabase
+      .from("muted_users")
+      .select("muted_id")
+      .eq("muter_id", user.id);
+    const mutedUserIds = mutes?.map((m) => m.muted_id) || [];
+
+    const excludedUserIds = new Set([...Array.from(blockedUserIds), ...mutedUserIds]);
+
     // Check which displays the user has viewed
     const { data: viewedDisplays } = await supabase
       .from("display_views")
       .select("display_id")
-      .eq("viewer_id", user.id);
+      .eq("user_id", user.id);
 
     const viewedIds = new Set(viewedDisplays?.map((v) => v.display_id) || []);
 
@@ -75,7 +104,7 @@ export async function GET(request: NextRequest) {
           media: d.media || [],
         })
       )
-      .filter((d) => d.user && d.user.username); // Only include displays with valid user data
+      .filter((d) => d.user && d.user.username && !excludedUserIds.has(d.user_id)); // Only include displays with valid user data
 
     return NextResponse.json({
       displays: transformedDisplays,

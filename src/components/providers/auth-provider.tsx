@@ -40,36 +40,92 @@ export default function AuthProvider({
   const fetchProfile = async (userId: string, retryCount = 0) => {
     if (!isMountedRef.current) return;
 
+    console.log(`[Auth] fetchProfile started for userId: ${userId}, attempt: ${retryCount + 1}`);
+
     try {
-      // Fetch profile with 5 second race timeout
+      // Fetch profile with 35 second race timeout to accommodate database cold starts
       const queryPromise = supabase
         .from("users")
         .select("*")
         .eq("id", userId)
         .single();
 
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Abort: Profile fetch timeout")), 5000)
-      );
+      let timerId: NodeJS.Timeout | undefined = undefined;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timerId = setTimeout(() => reject(new Error("Abort: Profile fetch timeout")), 35000);
+      });
 
-      const result = await Promise.race([queryPromise, timeoutPromise]);
+      const result = await Promise.race([
+        (async () => {
+          try {
+            const res = await queryPromise;
+            if (timerId) clearTimeout(timerId);
+            return res;
+          } catch (err) {
+            if (timerId) clearTimeout(timerId);
+            throw err;
+          }
+        })(),
+        timeoutPromise,
+      ]);
 
       if (!isMountedRef.current) return;
 
       const { data, error } = result;
 
       if (error) {
+        console.error(`[Auth] fetchProfile DB error:`, error);
+
+        // Auto-create profile if missing from public.users table (PGRST116)
+        if (error.code === "PGRST116") {
+          console.warn("[Auth] Profile row missing in public.users. Attempting auto-recreation...");
+          try {
+            // Get user session metadata
+            const { data: { user: authUser } } = await supabase.auth.getUser();
+            const email = authUser?.email || "";
+            let derivedUsername = email.split("@")[0] || "user";
+            derivedUsername = derivedUsername.toLowerCase().replace(/[^a-z0-9_]/g, "_");
+            if (derivedUsername.length < 3) derivedUsername += "_user";
+            const username = `${derivedUsername}_${userId.substring(0, 4)}`;
+
+            console.log(`[Auth] Recreating user profile with username: ${username}, email: ${email}`);
+
+            const { data: newProfile, error: createError } = await supabase
+              .from("users")
+              .insert({
+                id: userId,
+                username,
+                email: email || null,
+                display_name: authUser?.user_metadata?.display_name || username,
+                role: "buyer",
+              })
+              .select()
+              .single();
+
+            if (createError) {
+              console.error("[Auth] Profile auto-recreation failed:", createError);
+            } else if (newProfile) {
+              console.log("[Auth] Profile auto-recreation succeeded!", newProfile);
+              setProfile(newProfile as User);
+              return;
+            }
+          } catch (createErr) {
+            console.error("[Auth] Profile auto-recreation exception:", createErr);
+          }
+        }
+
         // Only log errors on final attempt or for critical errors
         if (retryCount >= 1) {
-          console.error("[Auth] Profile fetch failed:", error.code);
+          console.error("[Auth] Profile fetch failed permanently:", error.code);
         }
         
-        // Retry only for network errors, NOT PGRST116 (missing row is a permanent non-transient state here)
+        // Retry only for network errors, NOT PGRST116 (which we already handled or skipped)
         if (
           retryCount < 1 &&
           error.code !== "PGRST116" &&
           (error.message?.includes("fetch") || error.message?.includes("timeout"))
         ) {
+          console.log("[Auth] Retrying profile fetch in 1s...");
           await new Promise((resolve) => setTimeout(resolve, 1000));
           return fetchProfile(userId, retryCount + 1);
         }
@@ -78,16 +134,18 @@ export default function AuthProvider({
       }
 
       if (data) {
+        console.log("[Auth] Profile fetched successfully:", data);
         setProfile(data as User | null);
       }
     } catch (err: unknown) {
       if (!isMountedRef.current) return;
 
       const errMsg = err instanceof Error ? err.message : String(err);
+      console.error(`[Auth] fetchProfile exception caught:`, errMsg);
       
       // Only log on final retry or critical errors
       if (retryCount >= 1) {
-        console.error("[Auth] Profile fetch error:", errMsg.substring(0, 50));
+        console.error("[Auth] Profile fetch error permanently:", errMsg.substring(0, 50));
       }
 
       // Retry on network/timeout errors
@@ -95,6 +153,7 @@ export default function AuthProvider({
         retryCount < 1 &&
         (errMsg.includes("network") || errMsg.includes("Abort") || errMsg.includes("timeout"))
       ) {
+        console.log("[Auth] Retrying profile fetch on exception in 1s...");
         await new Promise((resolve) => setTimeout(resolve, 1000));
         return fetchProfile(userId, retryCount + 1);
       }
@@ -118,11 +177,22 @@ export default function AuthProvider({
   };
 
   useEffect(() => {
+    if (profile?.is_suspended) {
+      console.warn("[Auth] User profile is suspended. Logging out...");
+      signOut().then(() => {
+        window.location.href = "/login?error=suspended";
+      });
+    }
+  }, [profile]);
+
+  useEffect(() => {
     isMountedRef.current = true;
+    console.log("[Auth] AuthProvider mounted. hasInitialized:", hasInitialized);
     // Prevent multiple initializations
     if (hasInitialized) return;
 
     const getSession = async () => {
+      console.log("[Auth] getSession started...");
       try {
         const { data, error } = await supabase.auth.getSession();
 
@@ -134,6 +204,7 @@ export default function AuthProvider({
           setProfile(null);
         } else {
           const session = data?.session;
+          console.log("[Auth] Session result user id:", session?.user?.id || "No session");
           setUser(session?.user ?? null);
           if (session?.user) {
             await fetchProfile(session.user.id);
@@ -150,6 +221,7 @@ export default function AuthProvider({
         setProfile(null);
       } finally {
         if (isMountedRef.current) {
+          console.log("[Auth] getSession completed. Setting loading to false.");
           setLoading(false);
           setHasInitialized(true);
         }

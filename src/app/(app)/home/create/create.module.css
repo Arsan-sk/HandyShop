@@ -319,3 +319,47 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* ── Tabs Selector ── */
+.tabs {
+  display: flex;
+  margin: var(--space-md) auto 0;
+  max-width: 600px;
+  width: calc(100% - 2 * var(--space-lg));
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-full);
+  padding: 4px;
+}
+
+@media (max-width: 480px) {
+  .tabs {
+    width: calc(100% - 2 * var(--space-md));
+  }
+}
+
+.tab {
+  flex: 1;
+  padding: 10px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-full);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: center;
+  font-family: inherit;
+}
+
+.tab:hover {
+  color: var(--color-text-primary);
+}
+
+.activeTab {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+

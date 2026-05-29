@@ -19,6 +19,7 @@ import SettingsMenu from "@/components/profile/settings-menu";
 import EditProfileModal from "@/components/profile/edit-profile-modal";
 import PostEditorModal from "@/components/profile/post-editor-modal";
 import ProductEditorModal from "@/components/profile/product-editor-modal";
+import FollowListModal from "@/components/profile/follow-list-modal";
 import { useAuth } from "@/components/providers/auth-provider";
 import type { PostWithDetails, Product, ProductImage } from "@/types";
 import styles from "./profile.module.css";
@@ -32,6 +33,7 @@ export default function ProfilePage() {
   const [showSettings, setShowSettings] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("posts");
+  const [activeFollowList, setActiveFollowList] = useState<{ type: "followers" | "following"; isOpen: boolean } | null>(null);
 
   // Tab data states
   const [posts, setPosts] = useState<PostWithDetails[]>([]);
@@ -45,6 +47,13 @@ export default function ProfilePage() {
   // Active editors
   const [selectedPost, setSelectedPost] = useState<PostWithDetails | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<(Product & { images: ProductImage[] }) | null>(null);
+
+  // Refresh profile details (follower/following counts) on mount to get real-time stats
+  useEffect(() => {
+    if (user && refreshProfile) {
+      refreshProfile();
+    }
+  }, [user]);
 
   // Load private setting from LocalStorage
   useEffect(() => {
@@ -197,11 +206,17 @@ export default function ProfilePage() {
               <span className={styles.statValue}>{profile.post_count || 0}</span>
               <span className={styles.statLabel}>Posts</span>
             </div>
-            <div className={styles.stat}>
+            <div
+              className={styles.statBtn}
+              onClick={() => setActiveFollowList({ type: "followers", isOpen: true })}
+            >
               <span className={styles.statValue}>{profile.follower_count || 0}</span>
               <span className={styles.statLabel}>Followers</span>
             </div>
-            <div className={styles.stat}>
+            <div
+              className={styles.statBtn}
+              onClick={() => setActiveFollowList({ type: "following", isOpen: true })}
+            >
               <span className={styles.statValue}>{profile.following_count || 0}</span>
               <span className={styles.statLabel}>Following</span>
             </div>
@@ -426,6 +441,17 @@ export default function ProfilePage() {
         product={selectedProduct}
         onSave={fetchData}
       />
+
+      {/* Followers & Following Lists Modal */}
+      {activeFollowList && (
+        <FollowListModal
+          isOpen={activeFollowList.isOpen}
+          onClose={() => setActiveFollowList(null)}
+          username={profile.username}
+          type={activeFollowList.type}
+          onCountChange={refreshProfile}
+        />
+      )}
     </div>
   );
 }

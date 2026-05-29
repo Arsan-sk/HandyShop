@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { MapPin, ShoppingBag } from "lucide-react";
 import type { User } from "@/types";
 import styles from "./user-card.module.css";
@@ -19,11 +18,9 @@ export default function UserCard({ user }: UserCardProps) {
       <Link href={`/profile/${user.username}`} className={styles.link} title={`View ${user.username}'s profile`}>
         <div className={styles.avatarWrapper}>
           {user.avatar_url ? (
-            <Image
+            <img
               src={user.avatar_url}
               alt={user.username}
-              fill
-              sizes="64px"
               className={styles.avatar}
             />
           ) : (

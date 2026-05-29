@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, CornerDownRight, Trash2, Edit2, Send } from "lucide-react";
 import type { Comment } from "@/types";
@@ -269,11 +268,9 @@ export default function CommentSheet({
                     <div className={styles.commentItem}>
                       <div className={styles.avatar}>
                         {comment.user.avatar_url ? (
-                          <Image
+                          <img
                             src={comment.user.avatar_url}
                             alt={comment.user.username}
-                            width={32}
-                            height={32}
                             className={styles.avatarImg}
                           />
                         ) : (
@@ -333,11 +330,9 @@ export default function CommentSheet({
                         <CornerDownRight className={styles.replyArrow} size={16} />
                         <div className={styles.avatar}>
                           {reply.user.avatar_url ? (
-                            <Image
+                            <img
                               src={reply.user.avatar_url}
                               alt={reply.user.username}
-                              width={24}
-                              height={24}
                               className={styles.avatarImg}
                             />
                           ) : (

@@ -19,4 +19,11 @@
     margin-left: 80px;
     max-width: var(--max-width-desktop);
   }
+  
+  .mainQuickLook {
+    max-width: none !important;
+    width: calc(100vw - 80px) !important;
+    margin: 0 !important;
+    background: #000000 !important;
+  }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { LogOut } from "lucide-react";
+import { LogOut, Shield, Archive } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useRouter } from "next/navigation";
 import styles from "./settings-menu.module.css";
@@ -12,7 +12,7 @@ interface SettingsMenuProps {
 }
 
 export default function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
-  const { signOut } = useAuth();
+  const { signOut, profile } = useAuth();
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -54,6 +54,32 @@ export default function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
         id="settings-menu"
       >
         <div className={styles.menuContent}>
+          {profile?.role === "admin" && (
+            <button
+              className={styles.menuItem}
+              onClick={() => {
+                onClose();
+                router.push("/admin");
+              }}
+              id="admin-panel-btn"
+            >
+              <Shield size={18} />
+              <span>Admin Panel</span>
+            </button>
+          )}
+
+          <button
+            className={styles.menuItem}
+            onClick={() => {
+              onClose();
+              router.push("/displays/archive");
+            }}
+            id="story-archive-btn"
+          >
+            <Archive size={18} />
+            <span>Story Archive</span>
+          </button>
+
           <button
             className={styles.menuItem}
             onClick={handleLogout}

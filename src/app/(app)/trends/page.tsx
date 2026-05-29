@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, SlidersHorizontal, Grid, ShoppingBag, User, History, Trash2 } from "lucide-react";
+import { Search, SlidersHorizontal, Grid, ShoppingBag, User, History, Trash2, Heart, MessageCircle } from "lucide-react";
 import PostCard from "@/components/post/post-card";
 import ProductCard from "@/components/product/product-card";
 import UserCard from "@/components/profile/user-card";
+import PostOverlayModal from "@/components/post/post-overlay-modal";
+import { useAuth } from "@/components/providers/auth-provider";
 import type { PostWithDetails, Product, ProductImage, User as UserType } from "@/types";
 import styles from "./trends.module.css";
 
@@ -17,11 +20,19 @@ const filterChips = [
 ];
 
 export default function TrendsPage() {
+  const router = useRouter();
+  const { user } = useAuth();
+  
+  // Post Overlay Modal state
+  const [selectedPost, setSelectedPost] = useState<PostWithDetails | null>(null);
+  const [isOverlayOpen, setIsOverlayOpen] = useState(false);
+
   const [categories, setCategories] = useState<{ id: string; name: string; slug: string }[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedFilter, setSelectedFilter] = useState<string>("trending");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<"posts" | "products" | "users">("posts");
+  const [activeTab, setActiveTab] = useState<"usernames" | "posts" | "products" | "shops">("posts");
+  const [showFilterOverlay, setShowFilterOverlay] = useState(false);
 
   const [posts, setPosts] = useState<PostWithDetails[]>([]);
   const [products, setProducts] = useState<(Product & { images: ProductImage[]; seller?: UserType })[]>([]);
@@ -103,7 +114,7 @@ export default function TrendsPage() {
           setPosts(data.posts || []);
         } else if (type === "products") {
           setProducts(data.products || []);
-        } else if (type === "users") {
+        } else if (type === "usernames" || type === "shops" || type === "users") {
           setUsers(data.users || []);
         }
       }
@@ -130,17 +141,44 @@ export default function TrendsPage() {
     return () => clearTimeout(timer);
   }, [selectedFilter, selectedCategory, activeTab, fetchResults]);
 
+  // Listen to Trends navigation tab clicks when already active to reset page state to default
+  useEffect(() => {
+    const handleNavReset = () => {
+      setSearchQuery("");
+      setSelectedCategory("");
+      setSelectedFilter("trending");
+      setActiveTab("posts");
+      // Execute a clean fetch for default empty-query state
+      fetchResults("", "trending", "", "posts");
+    };
+
+    window.addEventListener("nav-click-trends", handleNavReset);
+    return () => {
+      window.removeEventListener("nav-click-trends", handleNavReset);
+    };
+  }, [fetchResults]);
+
   // Handle query input with debounce
   const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setSearchQuery(val);
+
+    // Immediately toggle the tab/searching UI states
+    if (val.trim() !== "") {
+      if (searchQuery.trim() === "") {
+        setActiveTab("usernames");
+      }
+    } else {
+      setActiveTab("posts");
+    }
 
     if (debounceTimeout.current) {
       clearTimeout(debounceTimeout.current);
     }
 
     debounceTimeout.current = setTimeout(() => {
-      fetchResults(val, selectedFilter, selectedCategory, activeTab);
+      const nextType = val.trim() !== "" ? (searchQuery.trim() === "" ? "usernames" : activeTab) : "posts";
+      fetchResults(val, selectedFilter, selectedCategory, nextType);
     }, 450);
   };
 
@@ -197,6 +235,8 @@ export default function TrendsPage() {
     }
   }, []);
 
+  const isSearching = searchQuery.trim() !== "";
+
   return (
     <div className={styles.container}>
       {/* Search Bar */}
@@ -205,7 +245,7 @@ export default function TrendsPage() {
           <Search size={18} className={styles.searchIcon} />
           <input
             type="text"
-            placeholder="Search shops, products, tags..."
+            placeholder="Search usernames, posts, products, shops..."
             className={styles.searchInput}
             value={searchQuery}
             onChange={handleQueryChange}
@@ -220,7 +260,12 @@ export default function TrendsPage() {
             }}
             id="search-input"
           />
-          <button className={styles.filterBtn} id="filter-button" aria-label="Filters">
+          <button
+            className={styles.filterBtn}
+            id="filter-button"
+            aria-label="Filters"
+            onClick={() => setShowFilterOverlay(true)}
+          >
             <SlidersHorizontal size={18} />
           </button>
         </div>
@@ -264,70 +309,43 @@ export default function TrendsPage() {
         )}
       </div>
 
-      {/* Categories Slider */}
-      <div className={styles.categoryWrapper}>
-        <div className={styles.categorySlider}>
+      {/* Result Tabs - Only shown when user is actively searching */}
+      {isSearching && (
+        <div className={styles.tabs} id="search-tabs">
           <button
-            className={`${styles.categoryPill} ${selectedCategory === "" ? styles.categoryPillActive : ""}`}
-            onClick={() => setSelectedCategory("")}
-            id="category-pill-all"
+            className={`${styles.tabButton} ${activeTab === "usernames" ? styles.tabButtonActive : ""}`}
+            onClick={() => setActiveTab("usernames")}
+            id="tab-usernames"
           >
-            All Categories
+            <User size={16} />
+            <span>Usernames</span>
           </button>
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              className={`${styles.categoryPill} ${selectedCategory === cat.id ? styles.categoryPillActive : ""}`}
-              onClick={() => setSelectedCategory(cat.id)}
-              id={`category-pill-${cat.slug}`}
-            >
-              {cat.name}
-            </button>
-          ))}
+          <button
+            className={`${styles.tabButton} ${activeTab === "posts" ? styles.tabButtonActive : ""}`}
+            onClick={() => setActiveTab("posts")}
+            id="tab-posts"
+          >
+            <Grid size={16} />
+            <span>Posts</span>
+          </button>
+          <button
+            className={`${styles.tabButton} ${activeTab === "products" ? styles.tabButtonActive : ""}`}
+            onClick={() => setActiveTab("products")}
+            id="tab-products"
+          >
+            <ShoppingBag size={16} />
+            <span>Products</span>
+          </button>
+          <button
+            className={`${styles.tabButton} ${activeTab === "shops" ? styles.tabButtonActive : ""}`}
+            onClick={() => setActiveTab("shops")}
+            id="tab-shops"
+          >
+            <span style={{ fontSize: "0.85rem", marginRight: "2px" }}>🏪</span>
+            <span>Shops</span>
+          </button>
         </div>
-      </div>
-
-      {/* Filter Chips */}
-      <div className={styles.chips}>
-        {filterChips.map((chip) => (
-          <button
-            key={chip.id}
-            className={`${styles.chip} ${selectedFilter === chip.id ? styles.chipActive : ""}`}
-            onClick={() => setSelectedFilter(chip.id)}
-            id={`filter-${chip.id}`}
-          >
-            {chip.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Result Tabs */}
-      <div className={styles.tabs} id="search-tabs">
-        <button
-          className={`${styles.tabButton} ${activeTab === "posts" ? styles.tabButtonActive : ""}`}
-          onClick={() => setActiveTab("posts")}
-          id="tab-posts"
-        >
-          <Grid size={16} />
-          <span>Posts</span>
-        </button>
-        <button
-          className={`${styles.tabButton} ${activeTab === "products" ? styles.tabButtonActive : ""}`}
-          onClick={() => setActiveTab("products")}
-          id="tab-products"
-        >
-          <ShoppingBag size={16} />
-          <span>Products</span>
-        </button>
-        <button
-          className={`${styles.tabButton} ${activeTab === "users" ? styles.tabButtonActive : ""}`}
-          onClick={() => setActiveTab("users")}
-          id="tab-users"
-        >
-          <User size={16} />
-          <span>Shops</span>
-        </button>
-      </div>
+      )}
 
       {/* Content Grid */}
       <section className={styles.gridSection} id="trends-grid">
@@ -351,16 +369,56 @@ export default function TrendsPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className={styles.postsList}
+              className={styles.masonryGrid}
             >
-              {posts.map((post) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  onAppreciate={handleAppreciate}
-                  onPick={handlePick}
-                />
-              ))}
+              {posts.map((post) => {
+                const firstMedia = post.media?.[0];
+                const hasMedia = !!firstMedia;
+                return (
+                  <div
+                    key={post.id}
+                    className={styles.masonryItem}
+                    onClick={() => {
+                      setSelectedPost(post);
+                      setIsOverlayOpen(true);
+                    }}
+                    style={{ cursor: "pointer" }}
+                  >
+                    {hasMedia ? (
+                      <>
+                        {firstMedia.media_type === "video" ? (
+                          <video src={firstMedia.media_url} className={styles.masonryMedia} muted loop playsInline />
+                        ) : (
+                          <img src={firstMedia.media_url} alt="Post media preview" className={styles.masonryMedia} />
+                        )}
+                        <div className={styles.masonryHoverOverlay}>
+                          <span className={styles.overlayStat}>
+                            <Heart size={16} fill="white" /> {post.appreciate_count || 0}
+                          </span>
+                          <span className={styles.overlayStat}>
+                            <MessageCircle size={16} fill="white" /> {post.comment_count || 0}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className={styles.textPostCard}>
+                        <p className={styles.textPostCaption}>{post.caption}</p>
+                        <span className={styles.textPostAuthor}>
+                          @{post.user?.username || "user"}
+                        </span>
+                        <div className={styles.masonryHoverOverlay}>
+                          <span className={styles.overlayStat}>
+                            <Heart size={16} fill="white" /> {post.appreciate_count || 0}
+                          </span>
+                          <span className={styles.overlayStat}>
+                            <MessageCircle size={16} fill="white" /> {post.comment_count || 0}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </motion.div>
           ) : activeTab === "products" && products.length > 0 ? (
             <motion.div
@@ -374,9 +432,45 @@ export default function TrendsPage() {
                 <ProductCard key={product.id} product={product} />
               ))}
             </motion.div>
-          ) : activeTab === "users" && users.length > 0 ? (
+          ) : activeTab === "usernames" && users.length > 0 ? (
             <motion.div
-              key="users"
+              key="usernames"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className={styles.usersList}
+            >
+              {users.map((user) => (
+                <div key={user.id} className={styles.usernameRowCard}>
+                  <div
+                    onClick={() => router.push(`/profile/${user.username}`)}
+                    className={styles.usernameRowLink}
+                  >
+                    <div className={styles.usernameAvatarWrapper}>
+                      {user.avatar_url ? (
+                        <img src={user.avatar_url} alt={user.username} className={styles.usernameAvatar} />
+                      ) : (
+                        <div className={styles.usernameAvatarFallback}>
+                          {user.username[0]?.toUpperCase() || "U"}
+                        </div>
+                      )}
+                    </div>
+                    <div className={styles.usernameInfo}>
+                      <span className={styles.usernameDisplayName}>
+                        {user.display_name || user.username}
+                      </span>
+                      <span className={styles.usernameText}>@{user.username}</span>
+                    </div>
+                    <div className={styles.viewProfileBadge}>
+                      View Profile
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </motion.div>
+          ) : activeTab === "shops" && users.length > 0 ? (
+            <motion.div
+              key="shops"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
@@ -404,6 +498,142 @@ export default function TrendsPage() {
           )}
         </AnimatePresence>
       </section>
+
+      {/* Filters & Algorithm Overlay Modal */}
+      <AnimatePresence>
+        {showFilterOverlay && (
+          <motion.div
+            className={styles.overlayBackdrop}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowFilterOverlay(false)}
+          >
+            <motion.div
+              className={styles.overlayContent}
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className={styles.overlayHeader}>
+                <h3>Filters & Algorithm</h3>
+                <button onClick={() => setShowFilterOverlay(false)} className={styles.closeOverlayBtn}>
+                  ✕
+                </button>
+              </div>
+
+              <div className={styles.overlayBody}>
+                {/* Algorithm Section */}
+                <div className={styles.overlaySection}>
+                  <h4 className={styles.sectionTitle}>Algorithm</h4>
+                  <div className={styles.algorithmGrid}>
+                    {filterChips.map((chip) => (
+                      <button
+                        key={chip.id}
+                        className={`${styles.overlayBtn} ${selectedFilter === chip.id ? styles.overlayBtnActive : ""}`}
+                        onClick={() => {
+                          setSelectedFilter(chip.id);
+                          // Fetch updated results immediately after category/filter changes
+                          setTimeout(() => {
+                            fetchResults(searchQuery, chip.id, selectedCategory, activeTab);
+                          }, 0);
+                        }}
+                      >
+                        {chip.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Categories Section */}
+                <div className={styles.overlaySection}>
+                  <h4 className={styles.sectionTitle}>Category</h4>
+                  <div className={styles.categoryGrid}>
+                    <button
+                      className={`${styles.overlayBtn} ${selectedCategory === "" ? styles.overlayBtnActive : ""}`}
+                      onClick={() => {
+                        setSelectedCategory("");
+                        setTimeout(() => {
+                          fetchResults(searchQuery, selectedFilter, "", activeTab);
+                        }, 0);
+                      }}
+                    >
+                      All Categories
+                    </button>
+                    {categories.map((cat) => (
+                      <button
+                        key={cat.id}
+                        className={`${styles.overlayBtn} ${selectedCategory === cat.id ? styles.overlayBtnActive : ""}`}
+                        onClick={() => {
+                          setSelectedCategory(cat.id);
+                          setTimeout(() => {
+                            fetchResults(searchQuery, selectedFilter, cat.id, activeTab);
+                          }, 0);
+                        }}
+                      >
+                        {cat.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.overlayFooter}>
+                <button
+                  className={styles.resetBtn}
+                  onClick={() => {
+                    setSelectedFilter("trending");
+                    setSelectedCategory("");
+                    setShowFilterOverlay(false);
+                    setTimeout(() => {
+                      fetchResults(searchQuery, "trending", "", activeTab);
+                    }, 0);
+                  }}
+                >
+                  Reset
+                </button>
+                <button
+                  className={styles.applyBtn}
+                  onClick={() => setShowFilterOverlay(false)}
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Post Overlay Detail Modal */}
+      {selectedPost && (
+        <PostOverlayModal
+          post={selectedPost}
+          isOpen={isOverlayOpen}
+          onClose={() => {
+            setIsOverlayOpen(false);
+            setSelectedPost(null);
+          }}
+          currentUserId={user?.id}
+          onPrev={
+            posts.findIndex((p) => p.id === selectedPost.id) > 0
+              ? () => {
+                  const idx = posts.findIndex((p) => p.id === selectedPost.id);
+                  setSelectedPost(posts[idx - 1]);
+                }
+              : undefined
+          }
+          onNext={
+            posts.findIndex((p) => p.id === selectedPost.id) < posts.length - 1
+              ? () => {
+                  const idx = posts.findIndex((p) => p.id === selectedPost.id);
+                  setSelectedPost(posts[idx + 1]);
+                }
+              : undefined
+          }
+        />
+      )}
     </div>
   );
 }

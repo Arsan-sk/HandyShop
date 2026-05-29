@@ -82,6 +82,15 @@
   --max-width-desktop: 1200px;
   --nav-height: 56px;
   --bottom-nav-height: 64px;
+
+  /* Compatibility mappings for components */
+  --bg-primary: var(--color-bg-primary);
+  --bg-secondary: var(--color-bg-secondary);
+  --bg-tertiary: var(--color-bg-tertiary);
+  --border-color: var(--color-border);
+  --text-primary: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --accent: var(--color-primary);
 }
 
 /* ── Dark Theme ── */
@@ -110,6 +119,15 @@
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.35);
   --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.4);
+
+  /* Compatibility mappings for components */
+  --bg-primary: var(--color-bg-primary);
+  --bg-secondary: var(--color-bg-secondary);
+  --bg-tertiary: var(--color-bg-tertiary);
+  --border-color: var(--color-border);
+  --text-primary: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --accent: var(--color-primary);
 }
 
 /* ── Base Reset & Typography ── */
