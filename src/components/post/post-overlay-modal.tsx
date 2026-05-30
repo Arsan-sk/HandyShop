@@ -309,9 +309,11 @@ export default function PostOverlayModal({
                       </Link>{" "}
                       {post.caption}
                     </p>
-                    {post.products?.[0]?.category_id && (
+                    {/* @ts-ignore — product is nested under .product in post_products join */}
+                    {(post.products?.[0] as any)?.product?.category_id && (
                       <div className={styles.tagsContainer}>
-                        <span className={styles.categoryTag}>#{post.products[0].category_id}</span>
+                        {/* @ts-ignore */}
+                        <span className={styles.categoryTag}>#{(post.products[0] as any).product.category_id}</span>
                       </div>
                     )}
                     <span className={styles.commentTime}>{getRelativeTime(post.created_at)}</span>

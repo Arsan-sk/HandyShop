@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get("category") || ""; // slug or ID
     const type = searchParams.get("type") || "all"; // posts, products, users, all
     const page = parseInt(searchParams.get("page") || "0");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const limit = parseInt(searchParams.get("limit") || "50");
     const offset = page * limit;
 
     // Fetch user profile details for location/interest filtering
@@ -104,8 +104,7 @@ export async function GET(request: NextRequest) {
             )
           )
         `)
-        .eq("status", "active")
-        .eq("is_quicklook", false);
+        .eq("status", "active");
 
       // Apply Text Search
       if (q) {
@@ -134,6 +133,7 @@ export async function GET(request: NextRequest) {
         postsQuery = postsQuery.in("user_id", followedIds.length > 0 ? followedIds : ["00000000-0000-0000-0000-000000000000"]);
       } else if (filter === "foryou") {
         const interests = userProfile?.interests || [];
+        // Only filter by interests if user has set them; otherwise show all posts
         if (interests.length > 0) {
           const { data: prodIds } = await supabase
             .from("products")
@@ -141,13 +141,17 @@ export async function GET(request: NextRequest) {
             .in("category_id", interests);
           const pIds = prodIds?.map((p) => p.id) || [];
 
-          const { data: postProds } = await supabase
-            .from("post_products")
-            .select("post_id")
-            .in("product_id", pIds.length > 0 ? pIds : ["00000000-0000-0000-0000-000000000000"]);
-          const matchedPostIds = postProds?.map((pp) => pp.post_id) || [];
-
-          postsQuery = postsQuery.in("id", matchedPostIds.length > 0 ? matchedPostIds : ["00000000-0000-0000-0000-000000000000"]);
+          if (pIds.length > 0) {
+            const { data: postProds } = await supabase
+              .from("post_products")
+              .select("post_id")
+              .in("product_id", pIds);
+            const matchedPostIds = postProds?.map((pp) => pp.post_id) || [];
+            // Only restrict if we found matches, otherwise show all
+            if (matchedPostIds.length > 0) {
+              postsQuery = postsQuery.in("id", matchedPostIds);
+            }
+          }
         }
       }
 
